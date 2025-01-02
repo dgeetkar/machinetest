@@ -1,38 +1,69 @@
-name: Angular Build
+name: Deploy Angular App to S3 Bucket and CloudFront
 
 on:
   push:
-    branches: [ "angular-build" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - angular-build
 
 jobs:
-  angular:
-    name: Angular Build
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
     steps:
-      # {2}
-      - name: Checkout the source code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      # {3}
-      - name: Setup Node.js $
-        uses: actions/setup-node@v3
-        with:
-          node-version: $
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
 
-      # {4}
-      - name: Install dependencies
-        run: npm ci
-      # {5}
-      - name: Run tests
-        run: npm run test:ci
-      # {6}
-      - name: Build
-        run: npm run build
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build Angular app
+      run: npm run build -- --output-path=dist/angular-app
+
+    # - name: List the dir
+    #   run: |
+    #     ls -ltr
+    #     cd dist
+    #     ls -ltr
+
+    # - name: Create CloudFront distribution
+    #   id: create_cloudfront
+    #   run: |
+    #     DISTRIBUTION_ID=$(aws cloudfront create-distribution --origin-domain-name ${{ github.event.inputs.bucket_name || 'anguler-s3-static-website' }}.s3.amazonaws.com \
+    #     --default-root-object index.html --output json | jq -r '.Distribution.Id')
+    #     echo "DISTRIBUTION_ID=$DISTRIBUTION_ID" >> $GITHUB_ENV
+    #   env:
+    #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #     AWS_REGION: ${{ secrets.AWS_REGION }}
+
+    # - name: Deploy to S3 bucket
+    #   uses: jakejarvis/s3-sync-action@v0.4.0
+    #   with:
+    #     args: --acl public-read --delete
+    #   env:
+    #     AWS_S3_BUCKET: ${{ github.event.inputs.bucket_name || 'anguler-s3-static-website' }}
+    #     AWS_REGION: "us-east-1"  
+    #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #     SOURCE_DIR: "dist/angular-app"
+       
+    # # - name: Deploy to S3 bucket
+    # #   uses: jakejarvis/s3-sync-action@v0.4.0
+    # #   with:
+    # #     args: --delete
+    # #   env:
+    # #     AWS_S3_BUCKET: "anguler-s3-static-website"
+    # #     AWS_REGION: "us-east-1"
+    # #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    # #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    # - name: Create CloudFront invalidation
+    #   run: aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
+    #   env:
+    #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
