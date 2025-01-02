@@ -24,11 +24,11 @@ jobs:
     - name: Build Angular app
       run: npm run build -- --output-path=dist/angular-app
 
-    # - name: List the dir
-    #   run: |
-    #     ls -ltr
-    #     cd dist
-    #     ls -ltr
+    - name: List the dir
+      run: |
+        ls -ltr
+        cd dist
+        ls -ltr
 
     # - name: Create CloudFront distribution
     #   id: create_cloudfront
